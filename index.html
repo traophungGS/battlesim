@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tactical Command – Battle Simulator</title>
+<style>
+:root{--bg:#070c0a;--pn:#0d1613;--ln:#1e3a2f;--tx:#c8e6d4;--dm:#6f9a85;--ac:#39ff88;--bl:#3aa0ff;--rd:#ff4a4a;--wn:#ffb020;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#dfe9e3;--pn:#eef4f0;--ln:#9bb8a8;--tx:#10281c;--dm:#4a6b5a;--ac:#0a7a3c;color-scheme:light}}
+:root[data-theme="light"]{--bg:#dfe9e3;--pn:#eef4f0;--ln:#9bb8a8;--tx:#10281c;--dm:#4a6b5a;--ac:#0a7a3c;color-scheme:light}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden}
+.app{height:100%;display:grid;grid-template-columns:210px 1fr 270px;grid-template-rows:auto 1fr;gap:6px;padding:6px}
+header{grid-column:1/4;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--pn);border:1px solid var(--ln);padding:6px 10px}
+.brand{color:var(--ac);font-weight:700;letter-spacing:.12em}
+#clk{font-size:18px;color:var(--ac);min-width:64px}#stat{color:var(--wn);flex:1;min-width:120px}
+button{background:transparent;color:var(--tx);border:1px solid var(--ln);padding:5px 9px;font:inherit;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+button:hover{border-color:var(--ac)}button.on{background:var(--ac);color:#04140b;border-color:var(--ac)}
+.p{background:var(--pn);border:1px solid var(--ln);padding:8px;overflow:auto}
+h3{margin:0 0 6px;color:var(--ac);font-size:11px;letter-spacing:.15em;border-bottom:1px solid var(--ln);padding-bottom:3px}
+aside{display:flex;flex-direction:column;gap:6px;min-height:0}aside .p{flex:none}
+.pal{display:grid;gap:4px;max-height:42vh;overflow-y:auto;padding-right:4px}.pal,aside{scrollbar-width:thin;scrollbar-color:var(--ln) transparent}.pal button{text-align:left}.pal b{display:inline-block;width:18px;color:var(--ac)}
+.tm{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}
+.tm button[data-t="0"].on{background:var(--bl);border-color:var(--bl)}.tm button[data-t="1"].on{background:var(--rd);border-color:var(--rd);color:#fff}
+.ctr{display:flex;flex-direction:column;gap:6px;min-height:0;min-width:0}
+.cw{position:relative;flex:1;min-height:200px;border:1px solid var(--ln);background:#000}
+#bf{width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+#banner{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:34px;letter-spacing:.2em;color:#fff;text-shadow:0 0 20px #000;background:rgba(0,0,0,.45);pointer-events:none;text-align:center}
+#banner{flex-direction:column}#banner small{display:block;font-size:14px;letter-spacing:.08em;margin-top:10px}
+#tl{width:100%;height:90px;display:block;background:var(--pn);border:1px solid var(--ln)}
+.r{display:flex;justify-content:space-between;gap:6px}.r span:first-child{color:var(--dm)}
+.bar{height:5px;background:var(--ln);margin:2px 0 4px}.bar i{display:block;height:100%;background:var(--ac)}
+table{width:100%;border-collapse:collapse}td,th{padding:1px 2px;text-align:right}td:first-child,th:first-child{text-align:left;color:var(--dm)}
+.b{color:var(--bl)}.rr{color:var(--rd)}
+#cas{display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:center}#cas big{display:block;font-size:26px;font-weight:700}
+#mm{width:100%;aspect-ratio:5/3;display:block;border:1px solid var(--ln);cursor:pointer;background:#000}
+#log{max-height:150px;overflow:auto;font-size:11px}#log div{padding:1px 0;border-bottom:1px dotted var(--ln)}
+@media (max-width:900px){body{overflow:auto}.app{display:flex;flex-direction:column;height:auto}.cw{flex:none;height:55vh}}
+</style></head><body>
+<div class="app">
+<header><span class="brand">&#9698; TACTICAL COMMAND // BATTLE SIM</span><span id="clk">00:00</span><span id="stat">STANDBY</span>
+<button id="play">Start battle</button>
+<span id="spd"><button data-s="1" class="on">1x</button><button data-s="2">2x</button><button data-s="5">5x</button><button data-s="10">10x</button></span>
+<button id="rst">Reset</button><button id="wx">Weather: Clear</button><button id="snd">Sound: Off</button></header>
+<aside style="overflow-y:auto;overflow-x:hidden">
+<div class="p"><h3>DEPLOYMENT</h3><div class="tm"><button data-t="0" class="on">Blue</button><button data-t="1">Red</button></div><div class="pal" id="pal"></div>
+<div class="tm" style="margin-top:6px"><button id="rnd">Random</button><button id="clr">Clear</button><button id="big" style="grid-column:1/3">100 v 100</button><button id="mir" style="grid-column:1/3">Mirror blue &#8594; red</button></div>
+<div style="color:var(--dm);font-size:11px">Click map to place (Shift = 5 at once). Right-click or Del removes. Drag / WASD / arrows pan, wheel zooms, F follows selected unit, Home fits map. Space = play/pause.</div></div>
+<div class="p" id="info" style="flex:1 0 auto;min-height:150px"></div>
+</aside>
+<section class="ctr"><div class="cw"><canvas id="bf"></canvas><div id="banner"></div></div>
+<canvas id="tl"></canvas></section>
+<aside style="overflow:auto">
+<div class="p"><h3>CASUALTIES</h3><div id="cas"></div></div>
+<div class="p"><h3>LIVE STATISTICS</h3><div id="stats"></div></div>
+<div class="p"><h3>MINIMAP</h3><canvas id="mm" width="250" height="150"></canvas></div>
+<div class="p"><h3>EVENT LOG</h3><div id="log"></div></div>
+</aside></div>
+<script>
+const W=3600,H=2160,CS=20,GX=W/CS,GY=H/CS,$=i=>document.getElementById(i);
+const TN=["BLUE","RED"],TC=["#3aa0ff","#ff4a4a"];
+const TY={
+tank:{n:"Tank",k:"T",hp:300,range:300,spd:32,dmg:150,ammo:40,det:420,cd:6,proj:1,mg:1,air:0,crew:3,arm:.75,hv:1,veh:1},
+infantry:{n:"Infantry",k:"I",hp:60,range:150,spd:14,dmg:6,ammo:400,det:260,cd:.5,air:.3,jet:0,crew:8,arm:1,inf:1},
+artillery:{n:"Artillery",k:"A",hp:90,range:900,spd:0,dmg:90,ammo:24,det:200,cd:6,air:0,crew:4,arm:1,min:250,veh:1,ind:1},
+helicopter:{n:"Helicopter",k:"H",hp:160,range:320,spd:70,dmg:30,ammo:60,det:500,cd:1.5,air:1,jet:.6,crew:2,arm:.9,fl:1},
+drone:{n:"Drone",k:"D",hp:20,range:40,spd:105,dmg:90,ammo:1,det:650,cd:1,air:0,crew:0,arm:1,fl:1},
+aircraft:{n:"Aircraft",k:"F",hp:120,range:380,spd:170,dmg:55,ammo:30,det:700,cd:.8,air:1,crew:1,arm:.9,fl:1},
+bunker:{n:"Defensive Position",k:"B",hp:500,range:280,spd:0,dmg:18,ammo:600,det:320,cd:.6,air:.5,jet:.4,crew:6,arm:.5,hv:1},
+ifv:{n:"IFV",k:"V",hp:170,range:260,spd:36,dmg:17,ammo:220,det:380,cd:1.5,air:.3,jet:0,crew:3,arm:.8,veh:1,hv:1,proj:1},
+mortar:{n:"Mortar",k:"M",hp:50,range:480,spd:12,dmg:45,ammo:36,det:240,cd:3,air:0,crew:3,arm:1,min:70,ind:1,inf:1},
+paratrooper:{n:"Paratrooper",k:"P",hp:65,range:160,spd:15,dmg:7,ammo:300,det:280,cd:.5,air:.3,jet:0,crew:1,arm:1,inf:1},
+transport:{n:"Transport Heli",k:"X",hp:140,range:0,spd:80,dmg:0,ammo:1,det:450,cd:99,air:1,jet:.6,crew:3,arm:.9,fl:1},
+aa:{n:"Air Defense",k:"S",hp:140,range:650,spd:30,dmg:16,ammo:300,det:700,cd:.07,air:1,jet:1,crew:3,arm:.8,veh:1,hv:1,proj:1,ao:1},
+atv:{n:"ATGM Carrier",k:"G",hp:120,range:520,spd:34,dmg:15,ammo:140,det:450,cd:1.5,air:.2,jet:0,crew:3,arm:.85,veh:1,hv:1,proj:1},
+mlrs:{n:"MLRS Katyusha",k:"R",hp:80,range:1400,spd:22,dmg:55,ammo:36,det:250,cd:14,air:0,min:350,crew:3,arm:1,veh:1,ind:1,salvo:6},
+spg:{n:"Self-Prop. Howitzer",k:"L",hp:110,range:800,spd:25,dmg:80,ammo:30,det:220,cd:5,air:0,min:200,crew:4,arm:.9,veh:1,ind:1},
+sniper:{n:"Sniper",k:"N",hp:40,range:420,spd:10,dmg:55,ammo:30,det:380,cd:3.5,air:0,crew:1,arm:1,inf:1},
+at:{n:"Javelin Team",k:"J",hp:55,range:450,spd:12,dmg:8,ammo:200,det:300,cd:1.5,air:0,crew:2,arm:1,inf:1,proj:1},
+apc:{n:"APC",k:"C",hp:140,range:200,spd:40,dmg:9,ammo:500,det:350,cd:.4,air:.3,jet:0,crew:3,arm:.8,veh:1,hv:1},
+medic:{n:"Recovery Vehicle",k:"E",hp:130,range:0,spd:30,dmg:0,ammo:1,det:350,cd:99,air:0,crew:3,arm:.85,veh:1,ao:1},
+manpads:{n:"MANPADS Team",k:"Q",hp:45,range:480,spd:12,dmg:100,ammo:6,det:400,cd:5,air:1,jet:1,crew:2,arm:1,inf:1,ao:1},
+truck:{n:"Ammo Truck",k:"U",hp:110,range:0,spd:38,dmg:0,ammo:100,det:350,cd:99,air:0,crew:2,arm:.85,veh:1,ao:1,lg:1},
+depot:{n:"Ammo Factory",k:"Y",hp:700,range:0,spd:0,dmg:0,ammo:600,det:320,cd:99,air:0,crew:6,arm:.55,veh:1,hv:1,ao:1,lg:1}};
+/* terrain */
+const HT=new Float32Array(GX*GY),FO=new Uint8Array(GX*GY);
+const hf=(x,y)=>Math.max(0,Math.min(1,.5+.26*Math.sin(x*.004+1)*Math.cos(y*.005)+.18*Math.sin(x*.011+y*.007)+.1*Math.sin(y*.02-x*.013)));
+const ci=(x,y)=>Math.min(GY-1,Math.max(0,y/CS|0))*GX+Math.min(GX-1,Math.max(0,x/CS|0));
+const hAt=(x,y)=>HT[ci(x,y)];
+const tc=document.createElement("canvas");tc.width=W;tc.height=H;const tx=tc.getContext("2d");
+for(let j=0;j<GY;j++)for(let i=0;i<GX;i++){const x=i*CS+10,y=j*CS+10,k=j*GX+i,h=HT[k]=hf(x,y);
+FO[k]=(Math.sin(x*.013+2)*Math.sin(y*.017+1)+.5*Math.sin(x*.03+y*.021))>.85&&h<.72?1:0;
+const b=Math.floor(h*8)/8;tx.fillStyle=`rgb(${22+b*80|0},${44+b*85|0},${30+b*45|0})`;tx.fillRect(i*CS,j*CS,CS,CS);
+if(FO[k]){tx.fillStyle="rgba(8,55,28,.9)";tx.beginPath();tx.arc(x,y,9,0,7);tx.fill()}}
+{const g=tx,sc=document.createElement("canvas");sc.width=900;sc.height=540;const sg=sc.getContext("2d"),im=sg.createImageData(900,540),D=im.data;
+for(let j=0;j<540;j++)for(let i=0;i<900;i++){const x=i*4,y=j*4,h=hf(x,y),sh=((hf(x-8,y)-hf(x+8,y))+(hf(x,y-8)-hf(x,y+8)))*5,m=.5+.5*Math.sin(x*.0063+y*.0041+Math.sin(y*.012)*2),o=(j*900+i)*4;
+D[o]=(30+h*60)*(1+sh)+m*18;D[o+1]=(52+h*70)*(1+sh)+(1-m)*10;D[o+2]=(32+h*30)*(1+sh);D[o+3]=255}
+sg.putImageData(im,0,0);g.imageSmoothingEnabled=true;g.drawImage(sc,0,0,W,H);
+for(let n=0;n<70000;n++){const x=Math.random()*W,y=Math.random()*H,h=hAt(x,y);g.fillStyle=Math.random()<.5?`rgba(${120+h*60|0},${150+h*50|0},80,.1)`:"rgba(0,0,0,.1)";g.fillRect(x,y,1+Math.random()*2,1+Math.random()*2)}
+g.strokeStyle="rgba(0,0,0,.16)";g.lineWidth=1;g.beginPath();for(let j=0;j<GY-1;j++)for(let i=0;i<GX-1;i++){const k=j*GX+i,b=Math.floor(HT[k]*10);if(Math.floor(HT[k+1]*10)!==b){g.moveTo((i+1)*CS,j*CS);g.lineTo((i+1)*CS,(j+1)*CS)}if(Math.floor(HT[k+GX]*10)!==b){g.moveTo(i*CS,(j+1)*CS);g.lineTo((i+1)*CS,(j+1)*CS)}}g.stroke();
+g.lineCap="round";for(const[y0,a,f]of[[.3,90,.004],[.7,70,.006]]){g.strokeStyle="rgba(26,20,12,.35)";g.lineWidth=9;g.beginPath();for(let x=0;x<=W;x+=20){const y=H*y0+Math.sin(x*f+y0*9)*a;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();g.strokeStyle="rgba(150,130,92,.45)";g.lineWidth=6;g.stroke()}
+for(let k=0;k<GX*GY;k++)if(FO[k]){const i=k%GX,j=k/GX|0;for(let n=0;n<4;n++){const x=i*CS+Math.random()*CS,y=j*CS+Math.random()*CS,r=5+Math.random()*4;g.fillStyle="rgba(0,0,0,.28)";g.beginPath();g.arc(x+2,y+3,r,0,7);g.fill();g.fillStyle=`rgb(${14+Math.random()*14|0},${58+Math.random()*30|0},${28+Math.random()*14|0})`;g.beginPath();g.arc(x,y,r,0,7);g.fill();g.fillStyle="rgba(150,230,120,.18)";g.beginPath();g.arc(x-r*.3,y-r*.3,r*.5,0,7);g.fill()}}}
+/* state */
+let units=[],byId=new Map,nid=1,T=0,running=false,started=false,ended=false,speed=1,sel=null,place=null,pTeam=0,snap=null,lastSpot=-9;
+let proj=[],def=[0,0],bk=[3,3],init=[{},{}],crashes=[],deb=[],tracers=[],booms=[],smokes=[],shells=[],wrecks=[],log=[],hist=[],evs=[],spot=[{},{}],st;
+const newSt=()=>[0,1].map(()=>({kills:0,lost:0,shots:0,dmg:0,pers:0}));st=newSt();
+const evt=(m,t)=>{log.unshift({t:T,m,t2:t});if(log.length>80)log.pop();if(t!=null)evs.push({t:T,team:t})};
+const fmt=t=>String(t/60|0).padStart(2,"0")+":"+String(t%60|0).padStart(2,"0");
+const vet=u=>Math.min(3,(u.kills||0)/2|0),RK=["Rookie","Veteran","Elite","Ace"];
+let fx=[],shk=0,mvp=null,wx=0,snd=0,AC=null,NB=null,lastSnd=0,follow=false;const keys={};const WXN=["CLEAR","FOG","NIGHT","STORM"],WXF=[1,.55,.7,.65];
+function scorch(x,y,r){tx.fillStyle="rgba(10,8,4,.22)";tx.beginPath();tx.arc(x,y,r*.55,0,7);tx.fill();tx.fillStyle="rgba(10,8,4,.2)";tx.beginPath();tx.arc(x+rnd(-4,4),y+rnd(-4,4),r*.3,0,7);tx.fill()}
+function sfx(k,x,y){if(!snd||!AC||x<vx||x>vx+cw/z||y<vy||y>vy+ch/z)return;const now=AC.currentTime;if(now-lastSnd<.04)return;lastSnd=now;const s=AC.createBufferSource(),g=AC.createGain(),f=AC.createBiquadFilter();s.buffer=NB;s.playbackRate.value=.7+Math.random()*.6;f.type="lowpass";f.frequency.value=k==="boom"?500:1400;g.gain.setValueAtTime(k==="boom"?.35:.1,now);g.gain.exponentialRampToValueAtTime(.001,now+(k==="boom"?.7:.15));s.connect(f);f.connect(g);g.connect(AC.destination);s.start(now)}
+function addUnit(type,team,x,y){const d=TY[type];const u={id:nid++,type,team,x,y,hp:d.hp,ammo:d.ammo,cd:Math.random()*d.cd,ang:team?Math.PI:0,tur:team?Math.PI:0,kills:0,tgt:null,near:null,at:Math.random()*.3,ox:(Math.random()-.5)*300,eg:0,dy:y,br:Math.random(),mode:0};if(type==="tank"){u.ap=20;u.he=20;u.cd2=0;u.atgm=4;u.cd3=0}if(type==="atv"){u.ap=60;u.he=80;u.atgm=10;u.cd3=0}if(type==="aa"){u.sam=8;u.cd3=0;u.bq=0}if(type==="at"){u.ap=80;u.he=120;u.atgm=3;u.cd3=0}if(type==="ifv"){u.ap=80;u.he=140;u.atgm=4;u.cd3=0}units.push(u);return u}
+/* LOS */
+function los(a,b){if(TY[a.type].fl||TY[b.type].fl)return true;
+const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),n=Math.ceil(d/14),ha=hAt(a.x,a.y),hb=hAt(b.x,b.y);
+for(let i=1;i<n;i++){const f=i/n,x=a.x+dx*f,y=a.y+dy*f,dd=d*f;
+for(const s of smokes)if(s.life>3&&Math.hypot(x-s.x,y-s.y)<s.r*.8)return false;
+if(dd>28&&d-dd>28&&FO[ci(x,y)])return false;
+if(hAt(x,y)>ha+(hb-ha)*f+.1)return false}return true}
+function doSpot(){spot=[{},{}];{const s=[0,0];for(const u of units)if(u.hp>0)s[u.team]+=u.hp;def=[s[0]<s[1]*.75?1:0,s[1]<s[0]*.75?1:0]}
+for(const f of units){if(f.hp<=0||f.ko)continue;const fd=TY[f.type];
+for(const e of units){if(e.team===f.team||e.hp<=0)continue;const ed=TY[e.type];
+let det=fd.det*(ed.fl?1.2:1)*WXF[wx];if(fd.fl&&!ed.fl&&FO[ci(e.x,e.y)])det*=.5;
+if(Math.hypot(e.x-f.x,e.y-f.y)<det&&los(f,e))spot[f.team][e.id]=T}}}
+function acquire(u){const d=TY[u.type],sp=spot[u.team];let best=null,bd=1e9,near=null,nd=1e9,nw=1e9;const thr=[];if(d.fl&&u.type!=="drone")for(const e of units)if(e.team!==u.team&&e.hp>0&&sp[e.id]!==undefined&&amul(TY[e.type],u)>0)thr.push(e);
+for(const e of units){if(e.team===u.team||e.hp<=0||e.ko)continue;const s=sp[e.id];if(s===undefined||T-s>5)continue;
+const ed=TY[e.type];if(u.type==="drone"&&ed.fl)continue;if(d.ao&&!ed.fl)continue;const q=Math.hypot(e.x-u.x,e.y-u.y);
+let pw=PR[e.type];if(e.hp<TY[e.type].hp*.5)pw*=.7;if(d.ind){let c=0;for(const o of units)if(o.team===e.team&&o.hp>0&&o!==e&&Math.hypot(o.x-e.x,o.y-e.y)<70)c++;pw/=1+c*.2;if(e.type==="artillery"||e.type==="mortar")pw*=.6}if(thr.length){let dg=0;for(const th of thr)if(th!==e&&Math.hypot(th.x-e.x,th.y-e.y)<300)dg++;pw*=1+dg*.25}const w=q*pw;if(w<nw){nw=w;near=e;nd=q}
+if(q>d.range||(d.min&&q<d.min)||(ed.fl&&amul(d,e)<=0))continue;
+if(!d.ind&&u.type!=="drone"&&!los(u,e))continue;
+if(w<bd){bd=w;best=e}}
+u.tgt=best?best.id:null;u.near=near&&!d.ao?near.id:null;
+if(!d.fl&&d.spd>0){let fc=0,ec=0,ic=0;for(const o of units){if(o.hp<=0)continue;const q=Math.hypot(o.x-u.x,o.y-u.y);if(q<350){if(o.team===u.team){fc++;if(o!==u&&TY[o.type].inf&&q<220)ic++}else if(sp[o.id]!==undefined)ec++}}u.esc=ic>0;if(ec>=fc*2.2+2){if(!(u.ret>T))smokes.push(mkSmoke(u.x+(u.team?-1:1)*25,u.y,32,20));u.ret=T+8}}
+if(d.inf||u.type==="tank"){if(near&&nd<d.range*(d.inf?2:1.3)&&!FO[ci(u.x,u.y)]){if(u.cv===undefined||u.cv===null)u.cv=u.type==="tank"?findRidge(u):findCover(u)}else if(!near)u.cv=null}}
+/* combat */
+const amul=(d,e)=>{const x=TY[e.type];return x.fl?(e.type==="aircraft"&&d.jet!==undefined?d.jet:d.air):1};
+const PR={tank:.8,infantry:1,artillery:.7,helicopter:.8,drone:.6,aircraft:.7,bunker:1.3,ifv:.85,mortar:.8,paratrooper:1,transport:1.2,aa:.9,atv:.85,mlrs:.7,spg:.7,sniper:.9,at:1,apc:.85,medic:.8,manpads:.9,truck:.9,depot:1.1};
+const WT=[90,200,320];
+function findRidge(u){const h0=hAt(u.x,u.y);let b=false,bh=h0+.04;for(let a=0;a<6.28;a+=.52)for(const r of[50,90,130]){const x=u.x+Math.cos(a)*r,y=u.y+Math.sin(a)*r;if(x<20||y<20||x>W-20||y>H-20)continue;const h=hAt(x,y);if(h>bh&&!FO[ci(x,y)]){bh=h;b=[x,y]}}return b}
+function safePt(u){const dir=u.team?-1:1;let b=null,bd=1e9;for(const o of units)if(o.team===u.team&&o.hp>0&&(o.type==="bunker"||o.type==="artillery"||o.type==="depot")){const q=Math.hypot(o.x-u.x,o.y-u.y);if(q<bd){bd=q;b=o}}
+return b?[b.x+dir*45,b.y+u.ox*.15]:[u.team?W-100:100,u.y]}
+function flyTr(u,dt){const d=TY.transport,tx=u.dropped?(u.team?W+300:-300):(u.team?W*.425:W*.575),ty=u.dropped?u.y:Math.max(80,Math.min(H-80,u.dy)),a=Math.atan2(ty-u.y,tx-u.x),q=Math.hypot(tx-u.x,ty-u.y);u.ang=turn(u.ang,a,1,dt);
+if(q>25){u.x+=Math.cos(u.ang)*d.spd*dt;u.y+=Math.sin(u.ang)*d.spd*dt}
+if(!u.dropped&&q<=30){u.dropped=1;for(let i=0;i<6;i++){const p=addUnit("paratrooper",u.team,u.x+rnd(-45,45),u.y+rnd(-45,45));p.chute=3.5}evt(`${TN[u.team]} paratroopers dropped`)}
+if(u.dropped&&(u.x<-250||u.x>W+250))u.gone=1}
+function wave(t){const x=()=>t?rnd(W-90,W-20):rnd(20,90),y=()=>rnd(110,H-110);let n=0;const add=(k,c)=>{for(let i=0;i<c;i++){addUnit(k,t,x(),y());n++}};
+for(const k in init[t])if(k!=="transport"&&k!=="paratrooper"&&k!=="depot")add(k,Math.round(init[t][k]*.3));
+add("ifv",3);add("truck",1);add("atv",1);add("mortar",2);add("transport",1);evt(`${TN[t]} backup wave ${3-bk[t]}/3 arrives (${n} units)`)}
+let FL=null;function findCover(u){if(!FL){FL=[];for(let k=0;k<FO.length;k++)if(FO[k])FL.push([(k%GX)*CS+10,(k/GX|0)*CS+10])}
+let b=null,bd=170;for(const f of FL){const q=Math.hypot(f[0]-u.x,f[1]-u.y);if(q<bd){bd=q;b=f}}return b||false}
+function hurt(t,dm,src){if(t.dead)return;dm*=TY[t.type].arm;if(t.type==="tank"&&src&&hAt(t.x,t.y)>hAt(src.x,src.y)+.04)dm*=.75;if(TY[t.type].inf){t.sup=2;if(FO[ci(t.x,t.y)])dm*=.6}t.hp-=dm;if(src)st[src.team].dmg+=dm;const d=TY[t.type];
+if(t.hp>0&&TY[t.type].veh){
+if(dm>d.hp*.3&&t.ammo/d.ammo>.4&&Math.random()<.18){die(t,src,true);return}
+if(t.hp<d.hp*.35&&!t.burn&&Math.random()<.5)t.burn=1}
+if(t.hp>0&&src&&d.veh&&dm>=d.hp*.06){const r=Math.random(),n=TN[t.team]+" "+d.n;
+if(d.spd>0&&r<.12){if(!(t.trk>T)){t.trk=T+50;evt(n+" tracks disabled!",t.team)}}
+else if(r<.22){if(!(t.gun>T)){t.gun=T+30;evt(n+" gun jammed!",t.team)}}
+else if(r<.32){if(!(t.opt>T)){t.opt=T+40;evt(n+" optics damaged",t.team)}}
+else if(r<.42&&(t.cw||0)<d.crew-1){t.cw=(t.cw||0)+1;evt(n+" crew casualty",t.team)}}
+if(t.hp>0&&src&&d.fl&&t.type!=="drone"&&t.type!=="transport"&&!t.eng&&dm>=d.hp*.1&&Math.random()<.15){t.eng=1;evt(TN[t.team]+" "+d.n+" engine hit, losing speed",t.team)}
+if(t.hp<=0)die(t,src)}
+function mkSmoke(x,y,r,max){return{x,y,r,life:max,max,p:[[0,0],[.5,.3],[-.4,.4],[.2,-.5],[-.5,-.2]]}}
+function die(t,src,force){if(t.dead)return;const d0=TY[t.type],f0=t.ammo/d0.ammo;if(t.cooking===undefined&&(d0.veh||t.type==="bunker")&&(force||(f0>.25&&Math.random()<.4*f0))){t.cooking=1.2+Math.random()*1.8;t.cs=src;t.hp=1;t.ko=1;t.burn=0;t.tgt=null;evt(`${TN[t.team]} ${d0.n} ammo burning!`,t.team);return}t.dead=1;t.hp=0;const d=TY[t.type];st[t.team].lost++;st[t.team].pers+=d.crew;sfx("boom",t.x,t.y);
+const by=src&&src!==t;if(by){src.kills++;st[src.team].kills++;if(src.kills<=6&&src.kills%2===0)evt(TN[src.team]+" "+TY[src.type].n+" promoted to "+RK[vet(src)],src.team);if(!mvp||src.kills>mvp.k)mvp={k:src.kills,n:TN[src.team]+" "+TY[src.type].n}}
+evt(`${TN[t.team]} ${d.n} destroyed`+(by?` by ${TN[src.team]} ${TY[src.type].n}`:""),t.team);
+const fr=t.ammo/d.ammo,veh=TY[t.type].veh||t.type==="bunker";
+const cook=t.cooking!==undefined;
+if(cook){evt(`${TN[t.team]} ${d.n} AMMO COOK-OFF`,t.team);const r=t.type==="depot"?170:t.type==="truck"?75:t.type==="bunker"?80:60;splash(t.x,t.y,r,60+110*fr,t,false);booms.push({x:t.x,y:t.y,r:r*1.5,life:1.3,max:1.3});smokes.push(mkSmoke(t.x,t.y,45,45));for(let i=0;i<10;i++){const a=Math.random()*6.3,s=40+Math.random()*90;deb.push({x:t.x,y:t.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.6+Math.random()*.6})}}
+const big=d.fl||TY[t.type].veh||t.type==="bunker";if(big)bang(t.x,t.y,d.fl?34:t.type==="depot"?120:44);
+booms.push({x:t.x,y:t.y,r:big?42:14,life:big?.9:.4,max:big?.9:.4});
+if(big){smokes.push(mkSmoke(t.x,t.y,d.fl?16:26,d.fl?12:30));if(!d.fl)wrecks.push({x:t.x,y:t.y,t:t.type,a:t.ang,tr:t.tur,k:!!cook,s:t.team,tm:T})}
+if(d.fl&&t.type!=="drone"){const hl=t.type==="helicopter"||t.type==="transport",sg=Math.random()<.5?-1:1;crashes.push({type:t.type,team:t.team,x:t.x,y:t.y,ang:t.ang,vx:Math.cos(t.ang)*(hl?14:d.spd*.8),vy:Math.sin(t.ang)*(hl?14:d.spd*.8),spin:hl?sg*9:sg*.8,roll:0,rs:hl?0:sg*6,t:0,T:hl?2.6:2.2})}}
+function splash(x,y,r,dm,src,air){if(r>=40){scorch(x,y,r);sfx("boom",x,y);bang(x,y,r)}booms.push({x,y,r:r*1.1,life:.8,max:.8});
+for(const e of units){if(e.hp<=0||(TY[e.type].fl&&!air))continue;const q=Math.hypot(e.x-x,e.y-y);if(q<r)hurt(e,dm*(1-q/r*.7),src)}}
+const MU={ap:{n:"APFSDS",dm:150,sp:0,sr:0,v:1100,col:"#aee8ff",w:2.4,acc:1.1,sf:.5,hd:1,l:26},he:{n:"HE",dm:55,sp:45,sr:32,v:620,col:"#ffd27a",w:3,acc:1,sf:1,hd:.25,l:20},ap30:{n:"30mm AP",dm:17,sp:0,sr:0,v:1000,col:"#ffffb0",w:1.2,acc:1,sf:.5,hd:.45,l:12},he30:{n:"30mm HE",dm:11,sp:7,sr:12,v:900,col:"#ffb060",w:1.4,acc:1,sf:1,hd:.15,l:12},atgm:{n:"ATGM",dm:230,sp:0,sr:0,v:320,col:"#ffffff",w:2,acc:.92,sf:.4,hd:1,l:30,trail:1}};
+MU.sam={n:"SAM",dm:130,sp:0,sr:0,v:700,col:"#ffffff",w:2,acc:.92,sf:1,hd:1,l:30,trail:1};MU.flak={n:"35mm flak",dm:16,sp:0,sr:0,v:1100,col:"#ffe890",w:1.3,acc:.85,sf:1,hd:1,l:14};
+function aaFire(u,t){const d=TY.aa,dist=Math.hypot(t.x-u.x,t.y-u.y),a=Math.atan2(t.y-u.y,t.x-u.x),sam=u.sam>0&&u.cd3<=0&&dist>160;
+if(!sam&&dist>340){u.cd=.3;return}
+const m=sam?MU.sam:MU.flak;
+if(sam){u.sam--;u.cd3=3.5;u.cd=.7}else{u.ammo--;if(u.bq>0){u.bq--;u.cd=u.bq>0?.07:1.3}else{u.bq=5;u.cd=.07}}
+u.lm=m.n;st[u.team].shots++;
+const acc=Math.max(.3,.95-dist/d.range*.5)*m.acc*(u.opt>T?.6:1),hit=Math.random()<acc,sc=hit?0:25+dist*.05,ex=t.x+(Math.random()-.5)*sc*2,ey=t.y+(Math.random()-.5)*sc*2;
+proj.push({x:u.x,y:u.y,x0:u.x,y0:u.y,tx:ex,ty:ey,t:0,T:Math.max(.06,dist/m.v),m,src:u,tg:t,hit});
+u.rc=T;booms.push({x:u.x+Math.cos(a)*12,y:u.y+Math.sin(a)*12,r:sam?16:8,life:.18,max:.18});if(sam)smokes.push(mkSmoke(u.x+Math.cos(a)*10,u.y+Math.sin(a)*10,10,3))}
+function heavy(u,t){if(u.type==="aa"){aaFire(u,t);return}const d=TY[u.type],tt=TY[t.type],hard=tt.hv,dist=Math.hypot(t.x-u.x,t.y-u.y),a=Math.atan2(t.y-u.y,t.x-u.x),tk=u.type==="tank";let k;
+if(tk){k=hard&&t.type!=="bunker"?"ap":"he";if(u[k]<=0)k=k==="ap"?"he":"ap";if(hard&&t.type!=="bunker"&&u.atgm>0&&u.cd3<=0&&dist>170)k="atgm"}
+else if(hard&&u.atgm>0&&u.cd3<=0&&dist>100)k="atgm";
+else{k=(tt.inf||tt.fl||t.type==="mortar"||t.type==="artillery")?"he30":"ap30";const q=k==="he30"?"he":"ap";if(u[q]<=0)k=k==="he30"?"ap30":"he30"}
+const kk=k==="atgm"?"atgm":(k==="ap"||k==="ap30")?"ap":"he",m=MU[k];if(u[kk]<=0)return;
+u[kk]--;if(kk!=="atgm")u.ammo--;u.lm=m.n;st[u.team].shots++;
+if(k==="atgm"){u.cd3=u.type==="atv"?5:12;u.cd=1}else if(tk)u.cd=d.cd*(k==="he"?.92:1)*(.95+Math.random()*.1);else{if(u.bq>0){u.bq--;u.cd=u.bq>0?.11:1.5}else{u.bq=2;u.cd=.11}}
+const acc=Math.max(.2,.97-dist/d.range*.5)*m.acc*(1+.04*vet(u))*(u.opt>T?.6:1)*(t.mv?.82:1)*(u.mv?.8:1)*(FO[ci(t.x,t.y)]?.82:1)*(tt.fl?.6:1),hit=Math.random()<acc,sc=hit?0:18+dist*.05,ex=t.x+(Math.random()-.5)*sc*2,ey=t.y+(Math.random()-.5)*sc*2;
+proj.push({x:u.x,y:u.y,x0:u.x,y0:u.y,tx:ex,ty:ey,t:0,T:Math.max(.06,dist/m.v),m,src:u,tg:t,hit});
+u.rc=T;sfx("shot",u.x,u.y);const mx=u.x+Math.cos(a)*13,my=u.y+Math.sin(a)*13;booms.push({x:mx,y:my,r:tk?20:9,life:.18,max:.18});if(tk||k==="atgm")smokes.push(mkSmoke(mx,my,tk?14:8,2.5))}
+function impact(p){const m=p.m,t=p.tg;
+if(p.hit&&t.hp>0){const dm=m.dm*(TY[t.type].hv?m.hd:m.sf)*(.88+Math.random()*.24)*amul(TY[p.src.type],t);hurt(t,dm,p.src)}
+if(m.sp)splash(p.tx,p.ty,m.sr,m.sp,p.src,false);else booms.push({x:p.tx,y:p.ty,r:p.hit?m.l*.8:m.l*.6,life:.35,max:.35})}
+function fire(u,t){const d=TY[u.type];if(d.proj){heavy(u,t);return}u.cd=d.cd*(.85+Math.random()*.3)*(u.sup>0?1.5:1);u.ammo--;st[u.team].shots++;
+const dist=Math.hypot(t.x-u.x,t.y-u.y),a=Math.atan2(t.y-u.y,t.x-u.x);
+if(d.ind){const n=d.salvo||1,sc=dist*.04+10+(n>1?40:0);for(let i=0;i<n;i++)shells.push({x:u.x,y:u.y,x0:u.x,y0:u.y,tx:t.x+(Math.random()-.5)*sc*2,ty:t.y+(Math.random()-.5)*sc*2,t:-i*.15,T:dist/(n>1?400:320),sm:Math.random()<.15,src:u});if(n>1)u.ammo=Math.max(0,u.ammo-(n-1));
+booms.push({x:u.x+Math.cos(a)*12,y:u.y+Math.sin(a)*12,r:16,life:.3,max:.3});return}
+const acc=Math.max(.25,.95-dist/d.range*.55)*(TY[t.type].fl?.7:1)*(1+.04*vet(u))*(u.opt>T?.6:1),hit=Math.random()<acc,sc=hit?0:30;
+const ex=t.x+(Math.random()-.5)*sc*2,ey=t.y+(Math.random()-.5)*sc*2,tk=u.type==="tank";
+tracers.push({x1:u.x,y1:u.y,x2:ex,y2:ey,life:.18,team:u.team,w:tk?2.4:1});
+booms.push({x:ex,y:ey,r:tk?16:7,life:.35,max:.35});
+if(hit){let dm=d.dmg*amul(d,t)*(.8+Math.random()*.4);if(d.inf&&TY[t.type].hv)dm*=.3;hurt(t,dm,u)}}
+/* update */
+const MX={tank:{ap:20,he:20,atgm:4},atv:{ap:60,he:80,atgm:10},at:{ap:80,he:120,atgm:3},ifv:{ap:80,he:140,atgm:4},aa:{sam:8}};
+function resup(o,f){const od=TY[o.type];o.ammo=Math.min(od.ammo,o.ammo+od.ammo*f);const m=MX[o.type];if(m)for(const k in m)o[k]=Math.min(m[k],o[k]+m[k]*f)}
+function bang(x,y,r){if(r<30||fx.length>1400)return;const n=Math.min(40,r*.5|0);
+for(let i=0;i<n;i++){const a=Math.random()*6.283,sp=(60+Math.random()*220)*Math.min(2,r/40);fx.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:.4+Math.random()*.8,max:1.2,k:1})}
+fx.push({x,y,r:r*2.2,life:.5,max:.5,k:2});fx.push({x,y,r:r*1.4,life:.12,max:.12,k:3});
+const sm=mkSmoke(x,y-r*.2,r*.7,r*.4+8);sm.d=1;smokes.push(sm);
+const q=Math.hypot(x-(vx+cw/z/2),y-(vy+ch/z/2));shk=Math.max(shk,Math.min(14,r*.2)*Math.max(0,1-q/900))}
+function logi(u,dt){const d=TY[u.type];
+if(u.burn){hurt(u,7*dt,null);if(u.dead)return;if(Math.random()<dt*3)booms.push({x:u.x,y:u.y,r:9,life:.4,max:.4})}
+if(u.hp<d.hp*.5&&Math.random()<dt*2)smokes.push(mkSmoke(u.x+rnd(-8,8),u.y+rnd(-8,8),12,7));
+if(u.type==="depot"){u.ammo=Math.min(d.ammo,u.ammo+5*dt);if(Math.random()<dt*.7)smokes.push(mkSmoke(u.x+(u.team?-12:12),u.y-12,8,5));return}
+let dep=null,bd=1e9;for(const o of units)if(o.type==="depot"&&o.team===u.team&&o.hp>0&&!o.ko){const q=Math.hypot(o.x-u.x,o.y-u.y);if(q<bd){bd=q;dep=o}}
+if(u.ammo<20)u.rl=1;if(u.ammo>=95||!dep)u.rl=0;
+let need=null,nb=1e9;if(!u.rl&&u.ammo>6)for(const o of units){if(o.team!==u.team||o.hp<=0||o.ko)continue;const od=TY[o.type];if(!od.veh||od.lg||od.ammo<=1)continue;const f=o.ammo/od.ammo;if(f>=.55)continue;const w=Math.hypot(o.x-u.x,o.y-u.y)*(.4+f);if(w<nb){nb=w;need=o}}
+let gx,gy,stop=20;
+if(need){gx=need.x;gy=need.y;stop=28}else if(u.rl&&dep){gx=dep.x;gy=dep.y;stop=38}else if(dep){gx=dep.x+(u.team?-70:70);gy=dep.y+u.ox*.3}else{gx=u.team?W-100:100;gy=u.y}
+const dist=Math.hypot(gx-u.x,gy-u.y),ga=Math.atan2(gy-u.y,gx-u.x);
+if(dist>stop&&!(u.trk>T)){u.ang=turn(u.ang,ga,1.6,dt);const df=Math.abs(adiff(ga,u.ang));const sp=d.spd*(FO[ci(u.x,u.y)]?.6:1)*(df>1.3?.1:1);u.x=Math.max(5,Math.min(W-5,u.x+Math.cos(u.ang)*sp*dt));u.y=Math.max(5,Math.min(H-5,u.y+Math.sin(u.ang)*sp*dt))}
+if(need&&dist<=stop+22){if(u.xo!==need.id)evt(TN[u.team]+" Ammo Truck resupplying "+TY[need.type].n,u.team);const f=.2*dt;resup(need,f);u.ammo=Math.max(0,u.ammo-f*35);u.xo=need.id;u.xt=T+.15}
+else if(u.rl&&dep&&dist<=stop+25&&dep.ammo>0){const a=Math.min(d.ammo-u.ammo,dep.ammo,35*dt);u.ammo+=a;dep.ammo-=a;u.xo=dep.id;u.xt=T+.15}}
+
+const adiff=(a,b)=>{let d=a-b;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d};
+const turn=(c,t,r,dt)=>{const q=adiff(t,c),m=r*dt;return Math.abs(q)<=m?t:c+Math.sign(q)*m};
+const TR={tank:[1.1,1.8],infantry:[7,7],artillery:[0,.7],helicopter:[1.8,3],drone:[9,9],aircraft:[1.4,9],bunker:[0,2],ifv:[1.4,2.4],mortar:[2,1.2],paratrooper:[7,7],transport:[1,1],aa:[1.2,3.5],atv:[1.4,2.4],mlrs:[.8,.8],spg:[1,.7],sniper:[6,6],at:[6,6],apc:[1.6,1.6],medic:[1.4,1.4],manpads:[6,6]},MODE={fight:"FIGHT TO DEATH",retreat:"RETREATING",repair:"REPAIRING"};
+function upd(u,dt){const d=TY[u.type],tr=TR[u.type];if(u.cooking!==undefined){u.cooking-=dt;const K=u.type==="depot"?4:1;if(Math.random()<dt*8*K)booms.push({x:u.x+rnd(-7,7)*K,y:u.y+rnd(-7,7)*K,r:10*K,life:.35,max:.35});if(K>1&&Math.random()<dt*2.5)splash(u.x+rnd(-50,50),u.y+rnd(-50,50),44,40,u.cs,false);if(Math.random()<dt*3)smokes.push(mkSmoke(u.x,u.y,16,10));if(Math.random()<dt*6)deb.push({x:u.x,y:u.y,vx:rnd(-70,70),vy:rnd(-70,70),life:.5});if(u.cooking<=0)die(u,u.cs,true);return}if(u.type==="transport"){flyTr(u,dt);return}if(u.type==="truck"||u.type==="depot"){logi(u,dt);return}if(u.chute>0){u.chute-=dt;u.x+=(u.team?-1:1)*6*dt;return}u.mv=u.px!==undefined&&Math.hypot(u.x-u.px,u.y-u.py)>d.spd*dt*.3;u.px=u.x;u.py=u.y;if(u.mv&&d.veh&&Math.random()<dt*1.5){const ds=mkSmoke(u.x-Math.cos(u.ang)*10,u.y-Math.sin(u.ang)*10,9,1.6);ds.d=2;smokes.push(ds)}u.cd-=dt*(u.mode==="fight"?1.25:1)*(1+.1*vet(u))*Math.max(.4,1-.2*(u.cw||0));u.at-=dt;if(u.cd2>0)u.cd2-=dt;if(u.cd3>0)u.cd3-=dt;
+if(u.sup>0)u.sup-=dt;if(u.eng&&Math.random()<dt*4)smokes.push(mkSmoke(u.x,u.y,10,6));if(u.burn){hurt(u,7*dt,null);if(u.dead)return;if(Math.random()<dt*3)booms.push({x:u.x,y:u.y,r:9,life:.4,max:.4});if(u.ammo/d.ammo>.25&&Math.random()<dt*.07){die(u,null,true);return}}if(u.at<=0){u.at=.3+Math.random()*.15;acquire(u)}
+const t=u.tgt!=null?byId.get(u.tgt):null,nr=u.near!=null?byId.get(u.near):null,ok=t&&t.hp>0,nok=nr&&nr.hp>0,dir=u.team?-1:1;
+const air=d.fl&&u.type!=="drone",dry=0;
+let gx,gy,stop=0,sm=1;
+const mob=d.spd>0&&u.type!=="drone";
+if(mob&&u.mode!=="repair"&&u.mode!=="retreat"){if(u.ammo<=0){u.mode="retreat";evt(TN[u.team]+" "+d.n+" out of ammo, falling back to resupply",u.team)}else if(!u.mode&&u.hp<d.hp*(d.fl?.35:.4)){u.mode=Math.random()<u.br?"fight":"retreat";evt(TN[u.team]+" "+d.n+(u.mode==="fight"?" will fight to the death!":" retreating for repairs"),u.team)}}
+if(u.mode==="retreat"||u.mode==="repair"){const sf=safePt(u);if(u.mode==="retreat"&&Math.hypot(sf[0]-u.x,sf[1]-u.y)<(d.fl?170:55)){u.mode="repair";evt(TN[u.team]+" "+d.n+" repairing at rear",u.team)}
+if(u.mode==="repair"){u.hp=Math.min(d.hp,u.hp+d.hp*.05*dt);u.ammo=Math.min(d.ammo,u.ammo+d.ammo*.08*dt);u.burn=0;if(u.hp>=d.hp*.9&&u.ammo>=d.ammo*.8){if(u.type==="tank"){u.ap=u.he=20;u.atgm=4}if(u.type==="ifv"){u.ap=80;u.he=140;u.atgm=4}if(u.type==="atv"){u.ap=60;u.he=80;u.atgm=10}if(u.type==="aa")u.sam=8;if(u.type==="at"){u.ap=80;u.he=120;u.atgm=3}u.mode=0;u.ret=0;u.br=Math.random();u.trk=u.gun=u.opt=0;u.cw=0;u.eng=0;evt(TN[u.team]+" "+d.n+" repaired, back in the fight",u.team)}}}
+const ret=mob&&u.mode!=="fight"&&(u.mode==="retreat"||u.mode==="repair"||(!d.fl&&u.ret>T));
+if(dry){gx=u.team?W+300:-300;gy=u.y}else if(ret){const sf=safePt(u);gx=sf[0];gy=sf[1];sm=1.1;stop=40}else if(nok&&u.cv&&!FO[ci(u.x,u.y)]){gx=u.cv[0];gy=u.cv[1];stop=3}else if(nok){gx=nr.x;gy=nr.y+(u.type!=="drone"&&Math.hypot(nr.x-u.x,nr.y-u.y)>d.range*1.4?(u.id%3===0?(u.id%2?1:-1)*260:u.ox*.3):0);stop=u.type==="drone"?0:d.range*(d.fl?.7:.8)}else{gx=u.x+dir*400;gy=u.y+u.ox;sm=.7}
+if(def[u.team]&&!d.fl&&d.spd>0&&!ret){const lim=u.team?W*.55:W*.45;if((u.team?u.x<=lim:u.x>=lim)&&(gx-u.x)*(u.team?-1:1)>0){gx=u.x;gy=u.y}}
+if(d.ao&&!ret&&(u.team?u.x<=W*.62:u.x>=W*.38)){gx=u.x;gy=u.y}
+if(u.type==="medic"){let b=null,bd=500;for(const o of units){if(o.team!==u.team||o.hp<=0||o===u||o.ko||o.type==="medic"||TY[o.type].fl)continue;const q=Math.hypot(o.x-u.x,o.y-u.y),od=TY[o.type];if(q<135){o.hp=Math.min(od.hp,o.hp+od.hp*.06*dt);if(o.hp>od.hp*.6)o.burn=0;if(o.trk>T)o.trk-=dt*4;if(o.gun>T)o.gun-=dt*4;if(o.opt>T)o.opt-=dt*4;if(o.cw>0&&Math.random()<dt*.2)o.cw--}if((o.hp<od.hp*.85||o.trk>T||o.gun>T)&&q<bd){bd=q;b=o}}if(b&&!ret){gx=b.x;gy=b.y;stop=45}}
+if(u.type==="tank"&&u.esc===false)sm*=.6;
+const dist=Math.hypot(gx-u.x,gy-u.y),ga=Math.atan2(gy-u.y,gx-u.x);
+if(u.type==="drone"&&nok&&dist<20){booms.push({x:u.x,y:u.y,r:75,life:.9,max:.9});for(let i=0;i<8;i++){const a=Math.random()*6.3,v=40+Math.random()*80;deb.push({x:u.x,y:u.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:.4+Math.random()*.4})}splash(u.x,u.y,60,140,u,false);evt(TN[u.team]+" kamikaze drone detonated on contact",u.team);die(u,null);return}
+if(d.spd>0){
+if(u.type==="aircraft"){let w=ga;const out=u.x<-60||u.x>W+60||u.y<-60||u.y>H+60;
+if(!dry&&out)w=Math.atan2(H/2-u.y,W/2-u.x);else if(u.eg>0){u.eg-=dt;w=u.ang}else if(nok&&dist<120)u.eg=3;
+const df=adiff(w,u.ang),m=1.4*dt;u.ang+=Math.max(-m,Math.min(m,df));u.x+=Math.cos(u.ang)*d.spd*(u.eng?.55:1)*dt;u.y+=Math.sin(u.ang)*d.spd*(u.eng?.55:1)*dt}
+else{const ovw=nok&&!d.fl&&!d.ind&&Math.hypot(nr.x-u.x,nr.y-u.y)<d.range*1.6&&(u.id%2)===(Math.floor(T/6)%2),hold=!d.fl&&!ret&&(ovw||(ok&&Math.hypot(t.x-u.x,t.y-u.y)<d.range*.9&&!(u.cv&&!FO[ci(u.x,u.y)])));
+if(dist>stop+4&&!hold&&!(u.trk>T)){let s=d.spd*sm*(u.sup>0?.5:1)*(u.eng?.55:1);if(!d.fl)s*=(FO[ci(u.x,u.y)]?.6:1)*(1-.3*hAt(u.x,u.y));
+const df=Math.abs(adiff(ga,u.ang));u.ang=turn(u.ang,ga,tr[0],dt);if(!d.fl)s*=df>1.3?.08:Math.max(.3,Math.cos(df));else s*=df>1.8?.3:Math.max(.5,Math.cos(df)*.5+.5);u.x+=Math.cos(u.ang)*s*dt;u.y+=Math.sin(u.ang)*s*dt}
+if(!d.fl)for(const o of units){if(o===u||o.hp<=0||TY[o.type].fl)continue;const q=Math.hypot(o.x-u.x,o.y-u.y);if(q<14&&q>.1){u.x+=(u.x-o.x)/q*8*dt;u.y+=(u.y-o.y)/q*8*dt}}}
+if(dry&&(u.x<-250||u.x>W+250)){u.gone=1;evt(`${TN[u.team]} ${d.n} withdrew (damaged or out of ammo)`)}
+if(!d.fl){u.x=Math.max(5,Math.min(W-5,u.x));u.y=Math.max(5,Math.min(H-5,u.y))}}
+if(ok&&u.type!=="drone"){const aim=Math.atan2(t.y-u.y,t.x-u.x);u.tur=turn(u.tur,aim,tr[1],dt);
+if(u.cd<=0&&u.ammo>0&&!(u.gun>T)&&(u.type==="aircraft"?Math.abs(adiff(aim,u.ang))<.4:Math.abs(adiff(aim,u.tur))<.12))fire(u,t);if(d.mg&&u.cd2<=0&&(TY[t.type].inf||t.type==="mortar")&&Math.hypot(t.x-u.x,t.y-u.y)<190){u.cd2=.14;tracers.push({x1:u.x+Math.cos(aim)*8,y1:u.y+Math.sin(aim)*8,x2:t.x+(Math.random()-.5)*14,y2:t.y+(Math.random()-.5)*14,life:.1,team:u.team,w:.8});if(Math.random()<.45)hurt(t,2.4,u)}}
+else if(!ok)u.tur=turn(u.tur,u.ang,tr[1],dt)}
+function step(dt){T+=dt;byId=new Map(units.map(u=>[u.id,u]));
+if(T-lastSpot>.5){doSpot();lastSpot=T}
+for(const u of units)if(u.hp>0&&!u.gone)upd(u,dt);
+for(const s of shells){s.t+=dt;const f=Math.max(0,Math.min(1,s.t/s.T));s.x=s.x0+(s.tx-s.x0)*f;s.y=s.y0+(s.ty-s.y0)*f;
+if(f>=1){s.done=1;splash(s.tx,s.ty,s.src.type==="mortar"?42:s.src.type==="mlrs"?55:70,TY[s.src.type].dmg,s.src,false);if(s.sm)smokes.push(mkSmoke(s.tx,s.ty,55,40))}}
+shells=shells.filter(s=>!s.done);
+for(const p of proj){p.t+=dt;const f=Math.min(1,p.t/p.T);p.x=p.x0+(p.tx-p.x0)*f;p.y=p.y0+(p.ty-p.y0)*f;if(p.m.trail&&Math.random()<dt*40)smokes.push(mkSmoke(p.x,p.y,5,2.5));if(f>=1){p.done=1;impact(p)}}
+proj=proj.filter(p=>!p.done);
+for(const a of[tracers,booms,smokes])for(const o of a)o.life-=dt;for(const p of fx){p.life-=dt;if(p.k===1){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.955;p.vy*=.955}}fx=fx.filter(p=>p.life>0);for(const m of smokes){m.x+=4*dt;m.y-=3*dt}
+tracers=tracers.filter(o=>o.life>0);booms=booms.filter(o=>o.life>0);smokes=smokes.filter(o=>o.life>0);
+for(const c of crashes){c.t+=dt;c.ang+=c.spin*dt;c.roll+=c.rs*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;if(c.type==="helicopter"){c.vx*=.985;c.vy*=.985}
+if(Math.random()<dt*14)smokes.push(mkSmoke(c.x,c.y,14,8));if(Math.random()<dt*10)booms.push({x:c.x,y:c.y,r:10,life:.3,max:.3});
+if(c.t>=c.T){c.done=1;splash(c.x,c.y,38,70,null,false);bang(c.x,c.y,55);booms.push({x:c.x,y:c.y,r:55,life:1.1,max:1.1});smokes.push(mkSmoke(c.x,c.y,35,40));wrecks.push({x:c.x,y:c.y,t:c.type,a:c.ang,s:c.team,tm:T});for(let i=0;i<12;i++){const a=Math.random()*6.3,s=30+Math.random()*80;deb.push({x:c.x,y:c.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.5+Math.random()*.6})}}}
+crashes=crashes.filter(c=>!c.done);
+for(const p of deb){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}deb=deb.filter(p=>p.life>0);
+units=units.filter(u=>u.hp>0&&!u.gone);
+if(T-(hist.length?hist[hist.length-1].t:-9)>=2)sampleHist();
+if(started&&!ended)for(let t=0;t<2;t++)if(bk[t]&&T>=WT[3-bk[t]]){bk[t]--;wave(t)}
+if(started&&!ended){const a=units.filter(u=>u.team===0).length,b=units.filter(u=>u.team===1).length;
+const fa=a||bk[0],fb=b||bk[1];if(!fa||!fb){ended=true;running=false;const w=fa?0:fb?1:-1;$("banner").style.display="flex";$("banner").innerHTML=(w<0?"MUTUAL DESTRUCTION":TN[w]+" VICTORY")+"<small>"+fmt(T)+" &middot; BLUE lost "+st[0].lost+" &middot; RED lost "+st[1].lost+(mvp?" &middot; MVP "+mvp.n+" ("+mvp.k+" kills)":"")+"</small>";$("banner").style.color=w<0?"#fff":TC[w];setStat(w<0?"DRAW":TN[w]+" VICTORY");$("play").textContent="Battle over"}}}
+function sampleHist(){const s=[0,0];for(const u of units)s[u.team]+=u.hp;hist.push({t:T,b:s[0],r:s[1]})}
+/* setup */
+function resetFx(){fx=[];shk=0;proj=[];bk=[3,3];crashes=[];deb=[];tracers=[];booms=[];smokes=[];shells=[];wrecks=[];log=[];hist=[];evs=[];spot=[{},{}];st=newSt();T=0;mvp=null;lastSpot=-9;sel=null;running=started=ended=false;$("banner").style.display="none";$("play").textContent="Start battle";setStat("STANDBY – DEPLOY UNITS")}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function scenario(big){units=[];resetFx();snap=null;
+[0,1].forEach(t=>{const x0=t?W-(big?1000:900):(big?60:100),x1=t?W-(big?60:100):(big?1000:900),p=(ty,n)=>{for(let i=0;i<n;i++)addUnit(ty,t,rnd(x0,x1),rnd(120,H-120))};
+const dp=n=>{for(let i=0;i<n;i++)addUnit("depot",t,t?W-rnd(90,260):rnd(90,260),rnd(300,H-300))};if(big){dp(2);p("truck",5);p("tank",12);p("infantry",16);p("artillery",4);p("helicopter",6);p("drone",6);p("aircraft",4);p("bunker",4);p("ifv",8);p("mortar",4);p("transport",4);p("aa",4);p("atv",4);p("mlrs",3);p("spg",3);p("sniper",4);p("at",5);p("apc",4);p("medic",2);p("manpads",3);return}dp(1);p("truck",2);p("tank",5+(Math.random()*3|0));p("infantry",12);p("artillery",3);p("helicopter",2);p("drone",3);p("aircraft",2);p("bunker",3);p("ifv",3);p("mortar",2);p("transport",1);p("aa",2);p("atv",2);p("mlrs",1);p("spg",1);p("sniper",1);p("at",2);p("apc",2);p("medic",1);p("manpads",1)})}
+function setStat(s){$("stat").textContent=s}
+$("play").onclick=()=>{if(ended)return;if(!started){if(!units.some(u=>u.team===0)||!units.some(u=>u.team===1)){setStat("DEPLOY UNITS FOR BOTH SIDES");return}
+started=true;init=[{},{}];units.forEach(u=>{init[u.team][u.type]=(init[u.team][u.type]||0)+1});snap=units.map(u=>({type:u.type,team:u.team,x:u.x,y:u.y}));sampleHist();evt("Battle commenced")}
+running=!running;$("play").textContent=running?"Pause":"Resume";setStat(running?"BATTLE IN PROGRESS":"PAUSED")};
+$("rst").onclick=()=>{const s=snap;units=[];resetFx();if(s)s.forEach(o=>addUnit(o.type,o.team,o.x,o.y))};
+$("clr").onclick=()=>{units=[];resetFx();snap=null};$("rnd").onclick=()=>scenario(false);$("big").onclick=()=>scenario(true);
+$("wx").onclick=()=>{wx=(wx+1)%4;$("wx").textContent="Weather: "+WXN[wx].charAt(0)+WXN[wx].slice(1).toLowerCase();evt("Weather: "+WXN[wx])};
+$("snd").onclick=()=>{snd=!snd;if(snd&&!AC){AC=new(window.AudioContext||window.webkitAudioContext)();NB=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}if(AC&&AC.state==="suspended")AC.resume();$("snd").textContent="Sound: "+(snd?"On":"Off")};
+$("mir").onclick=()=>{if(started)return;const bl=units.filter(u=>u.team===0);units=bl.slice();for(const u of bl)addUnit(u.type,1,W-u.x,u.y);sel=null};
+document.querySelectorAll("#spd button").forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll("#spd button").forEach(x=>x.classList.toggle("on",x===b))});
+document.querySelectorAll(".tm button[data-t]").forEach(b=>b.onclick=()=>{pTeam=+b.dataset.t;document.querySelectorAll(".tm button[data-t]").forEach(x=>x.classList.toggle("on",x===b))});
+const pal=$("pal");pal.innerHTML='<button data-k="" class="on"><b>&#9654;</b>Select</button>'+Object.entries(TY).map(([k,d])=>`<button data-k="${k}"><b>${d.k}</b>${d.n}</button>`).join("");
+pal.onclick=e=>{const b=e.target.closest("button");if(!b)return;place=b.dataset.k||null;pal.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))};
+addEventListener("blur",()=>{for(const k in keys)keys[k]=0});addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=0});addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=1;if(e.key.startsWith("Arrow"))e.preventDefault();if(e.key==="f"||e.key==="F")follow=!follow;if(e.key==="Home"){z=fitZ;clampView()}if(e.key==="Delete"&&sel){units=units.filter(o=>o!==sel);sel=null}if(e.code==="Space"){e.preventDefault();$("play").click()}if(e.key==="Escape")pal.firstChild.click();const i="1234".indexOf(e.key);if(i>=0)document.querySelectorAll("#spd button")[i].click()});
+/* view */
+const cv=$("bf"),ctx=cv.getContext("2d");let z=1,vx=0,vy=0,cw=1,ch=1,dpr=1,fitZ=1,pd=null,pan=false,mouse={x:0,y:0};
+function clampView(){vx=W*z<cw?(W-cw/z)/2:Math.max(0,Math.min(W-cw/z,vx));vy=H*z<ch?(H-ch/z)/2:Math.max(0,Math.min(H-ch/z,vy))}
+function resize(){dpr=devicePixelRatio||1;cw=cv.clientWidth;ch=cv.clientHeight;cv.width=cw*dpr;cv.height=ch*dpr;const f=Math.min(cw/W,ch/H);if(z===1||z<f)z=f;fitZ=f;clampView()}
+new ResizeObserver(resize).observe(cv);
+const pick=(x,y)=>{let b=null,bd=Math.max(14,16/z);for(const u of units){const q=Math.hypot(u.x-x,u.y-y);if(q<bd){bd=q;b=u}}return b};
+cv.addEventListener("pointerdown",e=>{pd={x:e.clientX,y:e.clientY,vx,vy};pan=false;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener("pointermove",e=>{const r=cv.getBoundingClientRect();
+if(pd){const dx=e.clientX-pd.x,dy=e.clientY-pd.y;if(Math.hypot(dx,dy)>5)pan=true;if(pan){vx=pd.vx-dx/z;vy=pd.vy-dy/z;clampView()}}
+mouse={x:(e.clientX-r.left)/z+vx,y:(e.clientY-r.top)/z+vy}});
+cv.addEventListener("pointerup",e=>{if(pd&&!pan&&e.button===0){if(place){const n=e.shiftKey?5:1;for(let i=0;i<n;i++)addUnit(place,pTeam,mouse.x+(i?rnd(-45,45):0),mouse.y+(i?rnd(-45,45):0))}else sel=pick(mouse.x,mouse.y)}pd=null});
+cv.addEventListener("contextmenu",e=>{e.preventDefault();const u=pick(mouse.x,mouse.y);if(u){units=units.filter(o=>o!==u);if(sel===u)sel=null}});
+cv.addEventListener("wheel",e=>{e.preventDefault();const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,wx=mx/z+vx,wy=my/z+vy;
+z=Math.max(fitZ*.9,Math.min(3,z*(e.deltaY<0?1.15:.87)));vx=wx-mx/z;vy=wy-my/z;clampView()},{passive:false});
+/* draw */
+function sprite(u,sc=1){const d=TY[u.type],c=TC[u.team],k=Math.max(1,.9/z);ctx.save();ctx.translate(u.x,u.y);ctx.scale(k*sc,k*sc);ctx.lineWidth=1;ctx.strokeStyle="#000";ctx.fillStyle=c;
+if(d.fl){ctx.fillStyle="rgba(0,0,0,.3)";ctx.save();ctx.translate(8,10);ctx.fillRect(-5,-3,10,6);ctx.restore();ctx.fillStyle=c}else{ctx.fillStyle="rgba(0,0,0,.3)";ctx.beginPath();ctx.ellipse(2,3,u.type==="tank"?12:u.type==="infantry"||u.type==="paratrooper"?4.5:9,u.type==="tank"?9:u.type==="infantry"||u.type==="paratrooper"?4:6,0,0,7);ctx.fill();ctx.fillStyle=c}
+ctx.rotate(u.ang);if(u.roll)ctx.scale(1,Math.cos(u.roll));
+switch(u.type){
+case"tank":{const rc=(T-(u.rc||-9))<.12?3:0;ctx.fillStyle="#15181a";ctx.fillRect(-10,-8.5,20,4);ctx.fillRect(-10,4.5,20,4);ctx.fillStyle="#2b3033";for(let i=-9;i<10;i+=3){ctx.fillRect(i,-8.5,1,4);ctx.fillRect(i,4.5,1,4)}
+ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(-9,-5);ctx.lineTo(8,-5);ctx.lineTo(11,-2);ctx.lineTo(11,2);ctx.lineTo(8,5);ctx.lineTo(-9,5);ctx.closePath();ctx.fill();ctx.stroke();
+ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-9,0,18,5);ctx.fillStyle="rgba(255,255,255,.18)";ctx.fillRect(-8,-5,15,1.5);
+ctx.rotate(u.tur-u.ang);ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(-6,-4.5);ctx.lineTo(3,-4.5);ctx.lineTo(7,-2);ctx.lineTo(7,2);ctx.lineTo(3,4.5);ctx.lineTo(-6,4.5);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle="rgba(0,0,0,.28)";ctx.fillRect(-6,0,12,4.5);
+ctx.fillStyle="#1a1d1f";ctx.fillRect(6,-1,13-rc,2);ctx.fillRect(16-rc,-1.6,3,3.2);ctx.beginPath();ctx.arc(-1,-1.5,1.6,0,7);ctx.fill();break}
+case"mlrs":ctx.fillStyle="#15181a";ctx.fillRect(-9,-6,18,3);ctx.fillRect(-9,3,18,3);ctx.fillStyle=c;ctx.fillRect(-9,-4,18,8);ctx.strokeRect(-9,-4,18,8);ctx.rotate(u.tur-u.ang);ctx.fillStyle="#2b3033";ctx.fillRect(-8,-4.5,16,9);ctx.fillStyle="#9aa";for(let i=-3;i<=3;i+=2)ctx.fillRect(-7,i-.5,15,1);break;
+case"spg":ctx.fillStyle="#15181a";ctx.fillRect(-10,-8,20,4);ctx.fillRect(-10,4,20,4);ctx.fillStyle=c;ctx.fillRect(-9,-5,18,10);ctx.strokeRect(-9,-5,18,10);ctx.rotate(u.tur-u.ang);ctx.fillRect(-6,-5,11,10);ctx.strokeRect(-6,-5,11,10);ctx.fillStyle="#1a1d1f";ctx.fillRect(5,-1,13,2);break;
+case"medic":ctx.fillStyle="#15181a";ctx.fillRect(-9,-7,18,3);ctx.fillRect(-9,4,18,3);ctx.fillStyle=c;ctx.fillRect(-8,-4.5,16,9);ctx.strokeRect(-8,-4.5,16,9);ctx.fillStyle="#fff";ctx.fillRect(-2,-4,4,8);ctx.fillRect(-4,-2,8,4);break;
+case"infantry":case"paratrooper":case"sniper":case"at":case"manpads":ctx.fillStyle="#222";ctx.fillRect(1,-1,8,1.6);ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(0,0,2.8,4,0,0,7);ctx.fill();ctx.stroke();ctx.fillStyle="rgba(0,0,0,.45)";ctx.beginPath();ctx.arc(.5,0,2,0,7);ctx.fill();if(u.type==="at"){ctx.fillStyle="#d8d8d0";ctx.fillRect(-3,-3.2,7,1.6)}if(u.type==="sniper"){ctx.fillStyle="#222";ctx.fillRect(8,-.6,6,1.1)}if(u.type==="manpads"){ctx.fillStyle="#d8d8d0";ctx.fillRect(-3,-1,10,2)}if(u.chute>0){ctx.save();ctx.rotate(-u.ang);ctx.fillStyle="#e8e8d8";ctx.beginPath();ctx.arc(0,-5,8,Math.PI,0);ctx.fill();ctx.strokeStyle="#bbb";ctx.beginPath();ctx.moveTo(-8,-5);ctx.lineTo(0,1);ctx.lineTo(8,-5);ctx.stroke();ctx.restore()}break;
+case"aa":{const rc=(T-(u.rc||-9))<.1?2:0;ctx.fillStyle="#15181a";ctx.fillRect(-9,-7,18,3);ctx.fillRect(-9,4,18,3);ctx.fillStyle=c;ctx.fillRect(-8,-4.5,16,9);ctx.strokeRect(-8,-4.5,16,9);ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-8,0,16,4.5);
+ctx.rotate(u.tur-u.ang);ctx.fillStyle=c;ctx.fillRect(-4,-4,8,8);ctx.strokeRect(-4,-4,8,8);ctx.fillStyle="#1a1d1f";ctx.fillRect(3,-3.4,11-rc,1.3);ctx.fillRect(3,2.1,11-rc,1.3);ctx.fillStyle="#d8d8d0";ctx.fillRect(-3,-5.4,5,1.6);ctx.fillRect(-3,3.8,5,1.6);
+ctx.save();ctx.translate(-1,0);ctx.rotate(T*6);ctx.fillStyle="#cfd";ctx.fillRect(-4,-.7,8,1.4);ctx.restore();break}
+case"ifv":case"atv":case"apc":{const rc=(T-(u.rc||-9))<.1?2:0;ctx.fillStyle="#15181a";ctx.fillRect(-9,-7,18,3);ctx.fillRect(-9,4,18,3);
+ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(-8,-4.5);ctx.lineTo(7,-4.5);ctx.lineTo(10,-1.5);ctx.lineTo(10,1.5);ctx.lineTo(7,4.5);ctx.lineTo(-8,4.5);ctx.closePath();ctx.fill();ctx.stroke();
+ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-8,0,16,4.5);ctx.fillStyle="rgba(0,0,0,.4)";ctx.fillRect(-7,-1,5,2);
+ctx.rotate(u.tur-u.ang);ctx.fillStyle=c;ctx.beginPath();ctx.rect(-3,-3,7,6);ctx.fill();ctx.stroke();ctx.fillStyle="#222";ctx.fillRect(1,-4.4,4,1.6);ctx.fillStyle="#1a1d1f";ctx.fillRect(3,-.6,11-rc,1.3);if(u.type==="atv"){ctx.fillStyle="#d8d8d0";ctx.fillRect(-3,-5.2,8,2);ctx.fillRect(-3,3.2,8,2)}break}
+case"mortar":ctx.beginPath();ctx.arc(0,0,3,0,7);ctx.fill();ctx.stroke();ctx.rotate(u.tur-u.ang);ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(7,0);ctx.stroke();break;
+case"artillery":ctx.beginPath();ctx.moveTo(-8,-7);ctx.lineTo(8,-7);ctx.lineTo(0,8);ctx.closePath();ctx.fill();ctx.stroke();ctx.rotate(u.tur-u.ang);ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(14,0);ctx.stroke();break;
+case"bunker":ctx.fillRect(-9,-9,18,18);ctx.strokeRect(-9,-9,18,18);ctx.fillStyle="#000a";ctx.fillRect(-5,-5,10,10);break;
+case"transport":case"helicopter":ctx.beginPath();ctx.ellipse(0,0,8,4.5,0,0,7);ctx.fill();ctx.stroke();ctx.fillRect(-14,-1,7,2);ctx.rotate(T*20);ctx.strokeStyle=c;ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.moveTo(0,-11);ctx.lineTo(0,11);ctx.stroke();break;
+case"drone":ctx.beginPath();ctx.moveTo(6,0);ctx.lineTo(0,4);ctx.lineTo(-6,0);ctx.lineTo(0,-4);ctx.closePath();ctx.fill();ctx.stroke();break;
+case"truck":{ctx.fillStyle="#15181a";ctx.fillRect(-10,-7,20,3);ctx.fillRect(-10,4,20,3);ctx.fillStyle=c;ctx.fillRect(2,-4.5,8,9);ctx.strokeRect(2,-4.5,8,9);ctx.fillStyle="rgba(180,220,255,.7)";ctx.fillRect(7,-3.5,2.5,7);ctx.fillStyle="#3a3d32";ctx.fillRect(-10,-4.5,12,9);ctx.strokeRect(-10,-4.5,12,9);const lw=(u.ammo===undefined?100:u.ammo)/100;ctx.fillStyle="#d8b04a";for(let i=0;i<3;i++)if(i/3<lw)ctx.fillRect(-9+i*3.8,-3.5,3,7);ctx.fillStyle=c;ctx.fillRect(-10,-.8,12,1.6);break}
+case"depot":{ctx.rotate(-u.ang);ctx.fillStyle="#2a2e2a";ctx.fillRect(-22,-17,44,34);ctx.strokeRect(-22,-17,44,34);ctx.fillStyle="#454c45";ctx.fillRect(-18,-13,26,26);ctx.strokeRect(-18,-13,26,26);ctx.fillStyle="rgba(255,255,255,.08)";for(let i=0;i<5;i++)ctx.fillRect(-18,-9+i*5,26,1.5);ctx.fillStyle=c;ctx.fillRect(-18,-13,26,3.5);ctx.fillStyle="#222";ctx.beginPath();ctx.arc(-8,2,3,0,7);ctx.fill();ctx.beginPath();ctx.arc(2,2,3,0,7);ctx.fill();const sf=(u.ammo===undefined?600:u.ammo)/600;for(let i=0;i<3;i++)for(let j=0;j<2;j++)if((i*2+j)/6<sf){ctx.fillStyle=(i+j)%2?"#6b5a2e":"#85703a";ctx.fillRect(11+j*6,-12+i*8,5,7)}ctx.fillStyle=c;ctx.fillRect(-21,-16,1.5,9);ctx.fillRect(-20,-16,6,4);break}
+case"aircraft":ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(-8,-9);ctx.lineTo(-4,0);ctx.lineTo(-8,9);ctx.closePath();ctx.fill();ctx.stroke()}
+ctx.restore();
+if(u.hp<d.hp){const w=18*k;ctx.fillStyle="#000a";ctx.fillRect(u.x-w/2,u.y-(u.type==="depot"?24:14)*k,w,3*k);ctx.fillStyle=u.hp/d.hp>.4?"#39ff88":"#ff4a4a";ctx.fillRect(u.x-w/2,u.y-(u.type==="depot"?24:14)*k,w*u.hp/d.hp,3*k)}
+if(u.mode){ctx.fillStyle=u.mode==="fight"?"#ff4a4a":u.mode==="repair"?"#39ff88":"#ffb020";ctx.font=(10*k)+"px monospace";ctx.textAlign="center";ctx.fillText(u.mode==="fight"?"!":u.mode==="repair"?"+":"<",u.x,u.y-17*k);ctx.textAlign="left"}
+{const ds=(u.trk>T?"T":"")+(u.gun>T?"G":"")+(u.opt>T?"O":"")+(u.eng?"E":"");if(ds){ctx.fillStyle="#ff9a3c";ctx.font=(8*k)+"px monospace";ctx.textAlign="center";ctx.fillText(ds,u.x,u.y+26*k);ctx.textAlign="left"}}
+if(u.kills>=2){ctx.fillStyle="#ffd24a";ctx.font=(9*k)+"px monospace";ctx.textAlign="center";ctx.fillText("^".repeat(vet(u)),u.x,u.y+17*k);ctx.textAlign="left"}}
+function wreck(w){const k=Math.max(1,.9/z),age=T-w.tm;ctx.save();ctx.translate(w.x,w.y);ctx.scale(k,k);ctx.rotate(w.a||0);ctx.fillStyle="#1b1b18";ctx.strokeStyle="#000";ctx.lineWidth=1;
+if(w.t==="tank"||w.t==="ifv"||w.t==="aa"||w.t==="atv"||w.t==="apc"||w.t==="mlrs"||w.t==="spg"||w.t==="medic"||w.t==="truck"){ctx.fillRect(-9,-6,18,12);ctx.strokeRect(-9,-6,18,12);ctx.fillStyle=TC[w.s];ctx.globalAlpha=.4;ctx.fillRect(-9,-1,4,2);ctx.globalAlpha=1;ctx.fillStyle="#2c2c28";
+if(w.k){ctx.save();ctx.translate(12,-8);ctx.rotate(w.a*3+1);ctx.fillRect(-4,-3,8,6);ctx.restore()}else{ctx.beginPath();ctx.arc(0,0,4.5,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(11,0);ctx.stroke()}}
+else if(w.t==="artillery"){ctx.beginPath();ctx.moveTo(-8,-7);ctx.lineTo(8,-7);ctx.lineTo(0,8);ctx.closePath();ctx.fill();ctx.stroke()}
+else if(w.t==="bunker"){ctx.fillStyle="#2b2b27";ctx.fillRect(-9,-9,18,18);ctx.fillStyle="#0c0c0a";for(let i=0;i<4;i++)ctx.fillRect(-8+i*4.5,-5+(i%2)*7,4,4)}
+else if(w.t==="aircraft"){ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(-6,-8);ctx.lineTo(-3,0);ctx.lineTo(-6,8);ctx.closePath();ctx.fill();ctx.fillRect(-14,-3,5,2)}
+else if(w.t==="depot"){ctx.fillStyle="#26241f";ctx.fillRect(-20,-15,40,30);ctx.fillStyle="#0c0c0a";for(let i=0;i<6;i++)ctx.fillRect(-17+i*6,-10+(i%3)*8,5,5);ctx.strokeStyle="#3a352c";ctx.strokeRect(-20,-15,40,30)}
+else{ctx.beginPath();ctx.ellipse(0,0,8,4.5,0,0,7);ctx.fill();ctx.strokeStyle="#2c2c28";ctx.beginPath();ctx.moveTo(-10,-3);ctx.lineTo(10,5);ctx.stroke()}
+ctx.restore();
+if(age<30){const g=.5+.5*Math.sin(T*18+w.x);ctx.fillStyle=`rgba(255,${110+g*80|0},20,${(1-age/30)*.55*(.6+.4*g)})`;ctx.beginPath();ctx.arc(w.x,w.y,6*k,0,7);ctx.fill()}}
+function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="#070c0a";ctx.fillRect(0,0,cv.width,cv.height);
+shk*=.9;if(shk<.3)shk=0;const s=z*dpr,sx=(Math.random()-.5)*shk*dpr,sy=(Math.random()-.5)*shk*dpr;ctx.setTransform(s,0,0,s,-vx*s+sx,-vy*s+sy);ctx.drawImage(tc,0,0);
+ctx.strokeStyle="rgba(120,255,170,.07)";ctx.lineWidth=1/z;ctx.beginPath();for(let x=0;x<=W;x+=100){ctx.moveTo(x,0);ctx.lineTo(x,H)}for(let y=0;y<=H;y+=100){ctx.moveTo(0,y);ctx.lineTo(W,y)}ctx.stroke();
+for(const w of wrecks)wreck(w);
+for(const u of units)if(!TY[u.type].fl)sprite(u);
+for(const m of smokes){const g=Math.min(1,(m.max-m.life)/2.5+.35),a=Math.min(1,m.life/m.max*1.3)*.55;ctx.fillStyle=m.d===1?`rgba(38,36,32,${a*.75})`:m.d===2?`rgba(150,128,92,${a*.4})`:`rgba(195,205,200,${a*.5})`;
+for(const p of m.p){ctx.beginPath();ctx.arc(m.x+p[0]*m.r*g,m.y+p[1]*m.r*g,m.r*g*.55,0,7);ctx.fill()}}
+for(const u of units)if(TY[u.type].fl)sprite(u);
+for(const c of crashes){const al=1-c.t/c.T,yy=c.y-al*12;ctx.fillStyle="rgba(0,0,0,.35)";ctx.beginPath();ctx.ellipse(c.x+10*al,c.y+12*al,8,4,0,0,7);ctx.fill();
+sprite({type:c.type,team:c.team,x:c.x,y:yy,ang:c.ang,tur:c.ang,roll:c.roll,hp:999},.9+.3*al);
+ctx.fillStyle=`rgba(255,${100+Math.random()*100|0},20,.75)`;ctx.beginPath();ctx.arc(c.x,yy,4+Math.random()*3,0,7);ctx.fill()}
+for(const u of units)if(u.type==="truck"&&u.xt>T){const o=byId.get(u.xo);if(o){ctx.strokeStyle="rgba(255,210,80,.85)";ctx.lineWidth=2/z;ctx.setLineDash([4/z,4/z]);ctx.beginPath();ctx.moveTo(u.x,u.y);ctx.lineTo(o.x,o.y);ctx.stroke();ctx.setLineDash([])}}
+for(const t of tracers){ctx.strokeStyle=t.team?"#ff9a7a":"#7ac8ff";ctx.globalAlpha=t.life/.18;ctx.lineWidth=t.w/Math.min(1,z*1.5);ctx.beginPath();ctx.moveTo(t.x1,t.y1);ctx.lineTo(t.x2,t.y2);ctx.stroke()}ctx.globalAlpha=1;
+for(const p of proj){const m=p.m,a=Math.atan2(p.ty-p.y0,p.tx-p.x0),z2=Math.min(1,z*1.5),L=m.l/z2;ctx.lineWidth=m.w/z2;ctx.strokeStyle=m.col;ctx.beginPath();ctx.moveTo(p.x-Math.cos(a)*L,p.y-Math.sin(a)*L);ctx.lineTo(p.x,p.y);ctx.stroke()}
+for(const h of shells){ctx.fillStyle="#ffd060";ctx.beginPath();ctx.arc(h.x,h.y,3/Math.min(1,z*1.5),0,7);ctx.fill()}
+for(const p of deb){ctx.fillStyle="#ffb040";ctx.fillRect(p.x,p.y,3,3)}
+ctx.globalCompositeOperation="lighter";for(const b of booms){const f=1-b.life/b.max,r=b.r*(.4+f*.8),cy=b.y-f*b.r*.25,g=ctx.createRadialGradient(b.x,cy,0,b.x,cy,r);
+g.addColorStop(0,`rgba(255,250,210,${1-f})`);g.addColorStop(.3,`rgba(255,190,70,${.9*(1-f)})`);g.addColorStop(.65,`rgba(230,80,20,${.6*(1-f)})`);g.addColorStop(1,"rgba(90,20,0,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,cy,r,0,7);ctx.fill()}
+for(const p of fx){const f=1-p.life/p.max;if(p.k===1){ctx.strokeStyle=`rgba(255,${190-f*120|0},60,${1-f})`;ctx.lineWidth=2/Math.min(1,z*1.5);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*.04,p.y-p.vy*.04);ctx.stroke()}
+else if(p.k===2){ctx.strokeStyle=`rgba(255,225,180,${.5*(1-f)})`;ctx.lineWidth=2+8*(1-f);ctx.beginPath();ctx.arc(p.x,p.y,p.r*Math.sqrt(f),0,7);ctx.stroke()}
+else{const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);g.addColorStop(0,`rgba(255,255,255,${1-f})`);g.addColorStop(1,"rgba(255,200,100,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}}
+ctx.globalCompositeOperation="source-over";
+if(sel&&sel.hp>0){const d=TY[sel.type];ctx.lineWidth=1.5/z;ctx.strokeStyle="#39ff88";ctx.beginPath();ctx.arc(sel.x,sel.y,16,0,7);ctx.stroke();
+ctx.setLineDash([6/z,6/z]);ctx.strokeStyle="rgba(57,255,136,.6)";ctx.beginPath();ctx.arc(sel.x,sel.y,d.range,0,7);ctx.stroke();
+ctx.strokeStyle="rgba(255,176,32,.5)";ctx.beginPath();ctx.arc(sel.x,sel.y,d.det,0,7);ctx.stroke();ctx.setLineDash([]);
+const t=sel.tgt!=null&&byId.get(sel.tgt);if(t&&t.hp>0){ctx.strokeStyle="#ffb020";ctx.beginPath();ctx.moveTo(sel.x,sel.y);ctx.lineTo(t.x,t.y);ctx.stroke()}}
+if(place){ctx.globalAlpha=.5;const g={type:place,team:pTeam,x:mouse.x,y:mouse.y,ang:pTeam?Math.PI:0,tur:0,hp:1};sprite(g);ctx.globalAlpha=1}
+if(wx){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=wx===1?"rgba(185,196,200,.3)":wx===2?"rgba(4,10,32,.5)":"rgba(40,50,60,.35)";ctx.fillRect(0,0,cv.width,cv.height);if(wx===3){ctx.strokeStyle="rgba(190,210,255,.35)";ctx.lineWidth=dpr;ctx.beginPath();for(let i=0;i<160;i++){const x=Math.random()*cv.width,y=Math.random()*cv.height;ctx.moveTo(x,y);ctx.lineTo(x-4*dpr,y+16*dpr)}ctx.stroke()}}
+{ctx.setTransform(1,0,0,1,0,0);const g=ctx.createRadialGradient(cv.width/2,cv.height/2,Math.min(cv.width,cv.height)*.45,cv.width/2,cv.height/2,Math.max(cv.width,cv.height)*.75);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.45)");ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height)}
+mini();}
+const mm=$("mm"),mx=mm.getContext("2d");
+function mini(){const w=mm.width,h=mm.height,k=w/W;mx.clearRect(0,0,w,h);mx.drawImage(tc,0,0,w,h);
+for(const u of units){mx.fillStyle=TC[u.team];mx.fillRect(u.x*k-1.5,u.y*k-1.5,3,3)}
+mx.strokeStyle="#39ff88";mx.strokeRect(vx*k,vy*k,cw/z*k,ch/z*k)}
+function mmGo(e){const r=mm.getBoundingClientRect();vx=(e.clientX-r.left)/r.width*W-cw/z/2;vy=(e.clientY-r.top)/r.height*H-ch/z/2;clampView()}
+let mmd=false;mm.onpointerdown=e=>{mmd=true;mm.setPointerCapture(e.pointerId);mmGo(e)};mm.onpointermove=e=>{if(mmd)mmGo(e)};mm.onpointerup=()=>mmd=false;
+const tl=$("tl"),tt=tl.getContext("2d");
+function drawTL(){const w=tl.width=tl.clientWidth*dpr,h=tl.height=tl.clientHeight*dpr;tt.clearRect(0,0,w,h);tt.font=`${10*dpr}px monospace`;tt.fillStyle="#6f9a85";tt.fillText("BATTLE TIMELINE — force strength (total HP)",6*dpr,12*dpr);
+const mt=Math.max(60,T),m0=hist.length?Math.max(hist[0].b,hist[0].r,1):1,x=t=>8*dpr+t/mt*(w-16*dpr),y=v=>h-14*dpr-v/m0*(h-34*dpr);
+tt.strokeStyle="rgba(120,255,170,.15)";tt.beginPath();for(let t=0;t<=mt;t+=30){tt.moveTo(x(t),18*dpr);tt.lineTo(x(t),h-12*dpr)}tt.stroke();
+[["b",0],["r",1]].forEach(([k,i])=>{tt.strokeStyle=TC[i];tt.lineWidth=2*dpr;tt.beginPath();hist.forEach((p,j)=>j?tt.lineTo(x(p.t),y(p[k])):tt.moveTo(x(p.t),y(p[k])));tt.stroke()});
+for(const e of evs){tt.fillStyle=TC[e.team];tt.fillRect(x(e.t),h-10*dpr,2*dpr,8*dpr)}
+tt.fillStyle="#6f9a85";tt.fillText(fmt(mt),w-40*dpr,12*dpr)}
+function ui(){$("clk").textContent=fmt(T);
+$("cas").innerHTML=[0,1].map(t=>`<div class="${t?"rr":"b"}">${TN[t]}<big>${st[t].lost}</big>units lost<br>~${st[t].pers} personnel</div>`).join("");
+const row=(l,f)=>`<tr><td>${l}</td><td class="b">${f(0)}</td><td class="rr">${f(1)}</td></tr>`;
+const cnt=t=>Object.entries(TY).map(([k,d])=>d.k+units.filter(u=>u.team===t&&u.type===k).length).join(" ");
+const hp=t=>units.filter(u=>u.team===t).reduce((a,u)=>a+u.hp,0)|0;
+const am=t=>{const a=units.filter(u=>u.team===t&&TY[u.type].ammo>1&&!TY[u.type].lg);return a.length?Math.round(a.reduce((s,u)=>s+u.ammo/TY[u.type].ammo,0)/a.length*100)+"%":"-"};
+$("stats").innerHTML=`<table><tr><th></th><th class="b">BLUE</th><th class="rr">RED</th></tr>${row("Alive",t=>units.filter(u=>u.team===t).length)}${row("Total HP",hp)}${row("Kills",t=>st[t].kills)}${row("Shots",t=>st[t].shots)}${row("Damage",t=>st[t].dmg|0)}${row("Ammo avg",am)}${row("Backup",t=>bk[t]?bk[t]+" (T+"+fmt(WT[3-bk[t]])+")":"0")}</table><div style="color:var(--dm);margin-top:4px;font-size:10px">B: ${cnt(0)}<br>R: ${cnt(1)}</div>`;
+$("log").innerHTML=log.slice(0,40).map(l=>`<div style="color:${l.t2==null?"var(--ac)":TC[l.t2]}">[${fmt(l.t)}] ${l.m}</div>`).join("");
+let h="";const row2=(l,v)=>`<div class="r"><span>${l}</span><span>${v}</span></div>`;
+if(sel&&sel.hp>0){const d=TY[sel.type],t=sel.tgt!=null&&byId.get(sel.tgt);
+h=`<h3>SELECTED UNIT #${sel.id}</h3><div style="color:${TC[sel.team]};font-weight:700">${TN[sel.team]} ${d.n}</div>`+row2("Health",`${sel.hp|0}/${d.hp}`)+`<div class="bar"><i style="width:${sel.hp/d.hp*100}%"></i></div>`+row2("Ammo",`${sel.ammo}/${d.ammo}`)+`<div class="bar"><i style="width:${sel.ammo/d.ammo*100}%"></i></div>`+row2("Range",d.range)+row2("Speed",d.spd)+row2("Damage",d.dmg)+row2("Detection",d.det)+row2("Kills",sel.kills)+row2("Rank",RK[vet(sel)])+row2("Target",t&&t.hp>0?TY[t.type].n:"none")+(sel.mode?row2("Mode",MODE[sel.mode]):"")+(sel.trk>T?row2("Tracks","DISABLED"):"")+(sel.gun>T?row2("Gun","JAMMED"):"")+(sel.opt>T?row2("Optics","DAMAGED"):"")+(sel.cw>0?row2("Crew","-"+sel.cw+" wounded"):"")+(sel.eng?row2("Engine","DAMAGED"):"")+(sel.burn?row2("Status","BURNING"):"")+(sel.cooking!==undefined?row2("Status","AMMO COOKING OFF"):"")+(sel.type==="tank"?row2("Rounds",`APFSDS ${sel.ap} / HE ${sel.he} / ATGM ${sel.atgm}`)+row2("Reload",d.cd+" s")+row2("Last shot",sel.lm||"-"):"")+(sel.type==="ifv"?row2("Rounds",`AP ${sel.ap} HE ${sel.he} ATGM ${sel.atgm}`)+row2("Last shot",sel.lm||"-"):"")+(sel.type==="atv"?row2("Rounds",`AP ${sel.ap} HE ${sel.he} ATGM ${sel.atgm}`)+row2("Last shot",sel.lm||"-"):"")+(sel.type==="aa"?row2("SAM",sel.sam+"/8")+row2("Last shot",sel.lm||"-"):"")+(sel.type==="at"?row2("ATGM",sel.atgm+"/3"):"")}
+else{const k=place||null,d=k&&TY[k];h=d?`<h3>TEMPLATE</h3><div style="font-weight:700">${d.n}</div>`+row2("Health",d.hp)+row2("Range",d.range)+row2("Speed",d.spd)+row2("Damage",d.dmg)+row2("Ammo",d.ammo)+row2("Detection",d.det):`<h3>UNIT INFO</h3><div style="color:var(--dm)">Select a unit on the map, or choose a unit type to deploy.</div>`}
+$("info").innerHTML=h}
+function panCam(rd){const pv=700/z*rd;if(keys.a||keys.arrowleft)vx-=pv;if(keys.d||keys.arrowright)vx+=pv;if(keys.w||keys.arrowup)vy-=pv;if(keys.s||keys.arrowdown)vy+=pv;if(follow&&sel&&sel.hp>0){vx=sel.x-cw/z/2;vy=sel.y-ch/z/2}clampView()}
+let last=performance.now(),ul=0;
+function frame(n){const rd=Math.min(.1,(n-last)/1000);last=n;panCam(rd);
+if(running){const sim=rd*speed,k=Math.ceil(sim/.05);for(let i=0;i<k;i++)step(sim/k)}
+draw();if(n-ul>250){ul=n;ui();drawTL()}requestAnimationFrame(frame)}
+scenario();resize();z=fitZ;clampView();requestAnimationFrame(frame);
+</script></body></html>
